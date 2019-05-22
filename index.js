@@ -175,14 +175,56 @@ const pad = (str, paddingLength = 24) => `${str}${Array(paddingLength - str.leng
             const oldModuleMethodNames = oldModule.methods.map((m) => m.name);
             const newMethods = newModule.methods.filter((m) => !oldModuleMethodNames.includes(m.name));
 
-            if (newMethods.length) {
-                console.log(`${pad(newModule.name)} ${newMethods.length} new`);
 
+            const oldClassNames = oldModule.classes.map((c) => c.name);
+            const newClasses = newModule.classes.filter((c) => !oldClassNames.includes(c.name));
+
+            const oldClassesWithNewMethods = newModule.classes.filter((c) => {
+                const oldModuleClass = oldModule.classes.find((oc) => oc.name === c.name);
+
+                return !newClasses.includes(c) && c.methods.length > oldModuleClass.methods.length;
+            });
+
+            const hasChanges = newMethods.length || newClasses.length || oldClassesWithNewMethods.length;
+
+            if (!hasChanges) {
+                return;
+            }
+
+            console.log(`# ${oldModule.name}`);
+
+            if (newMethods.length) {
+                console.log(`## new methods (${newMethods.length})`);
                 newMethods.forEach((m) => {
-                    console.log(`- ${m.name}: ${m.returnType}`)
+                    console.log(`- \`${m.name}\`: \`${m.returnType}\``)
+                });
+            }
+
+            if (newClasses.length) {
+                console.log(`## new classes (${newClasses.length})`);
+                newClasses.forEach((c) => {
+                    console.log(`### ${c.name}:`);
+
+                    c.methods.forEach((m) => console.log(`- \`${m.name}\`: \`${m.returnType}\``))
+                });
+            }
+
+            if (oldClassesWithNewMethods.length) {
+                console.log(`## new class methods`);
+                oldClassesWithNewMethods.map((c) => {
+                    const oldClassMethodNames = oldModule.classes
+                        .find((oc) => oc.name === c.name)
+                        .methods
+                        .map((m) => m.name);
+                    const newMethods = c.methods.filter((m) => !oldClassMethodNames.includes(m.name));
+
+                    console.log(`### ${c.name}:`);
+
+                    newMethods.forEach((m) => console.log(`- \`${m.name}\`: \`${m.returnType}\``))
                 });
             }
         });
+
     } catch (error) {
         console.error(error);
         process.exit(1);
